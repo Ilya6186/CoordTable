@@ -16,7 +16,7 @@
 
 		//---------------------------
 		m_speed = 0;					// now speed
-		m_MaxSpeed = 0;					// max speed
+		m_MaxSpeed = -1;					// max speed
 		m_MinSpeed = 0;					// min speed
 		//---------------------------
 		m_direction = 0;				// direction 1 - left, 0 - right
@@ -42,7 +42,7 @@
 	{
 		if(typeMotorControl == DC_MOTOR)
 		{
-			accelerationDCService(getMaxSpeed() / 100, getMaxSpeed() / 100);
+			accelerationDCService(getMaxSpeed() / m_stepsAcceleration, m_OneStepAcceleration);
 
 			m_counterSteps++;
 		}
@@ -69,7 +69,6 @@
 				else
 				{
 					m_speed = 0;
-					m_typeMotion = NO_MOTION;
 					m_counterSteps = 0;
 					stopMotion();
 				}
@@ -99,18 +98,23 @@
 	void StepMotor::startDC_Motion(uint16_t nStepsAcceleration, uint16_t stepsInOneAccelStep)
 	{
 		typeMotorControl = DC_MOTOR;
-
+		m_stepsAcceleration = nStepsAcceleration;
+		m_OneStepAcceleration = stepsInOneAccelStep;
 		HAL_TIM_PWM_Start_IT(p_htim_PWM, TIM_CHANNEL_1);
 		//accelerationService(m_counterSteps);
 
 	}
 
-	void StepMotor::startMotion(uint32_t steps, uint8_t procentAccel,  uint16_t nStepsAccelBrake)
+	void StepMotor::startMotion(uint32_t steps, uint32_t maxSpeed ,uint8_t procentAccel,  uint16_t nStepsAccelBrake)
 	{
 		typeMotorControl = STEP_MOTOR;
 
 		if(m_typeMotion == NO_MOTION)
 		{
+
+			m_typeMotion = ACCELERATION;
+
+			m_MaxSpeed = maxSpeed;
 
 			HAL_GPIO_WritePin(m_GPIOx_Enable, m_pin_enable, GPIO_PIN_RESET);
 
@@ -124,7 +128,15 @@
 			}
 
 			m_nStepsForMotion = steps;
-			int pointStartBrake_Acceleration = steps * procentAccel / 100;			// 15% ШАГОВ ИСПОЛЬЗУЕМ ДЛЯ РАЗГОНА И ТОРМОЖЕНИЯ
+
+			uint32_t pointStartBrake_Acceleration = m_MaxSpeed * procentAccel / 100;			// 15% ШАГОВ ИСПОЛЬЗУЕМ ДЛЯ РАЗГОНА И ТОРМОЖЕНИЯ
+
+			if(steps < pointStartBrake_Acceleration)
+			{
+				m_MaxSpeed = steps / 2;
+				pointStartBrake_Acceleration = m_MaxSpeed;
+			}
+
 			int stepsAcceleration_Brake = pointStartBrake_Acceleration / nStepsAccelBrake;		// КОЛ-ВО ШАГОВ УВЕЛИЧЕНИЯ ЧАСТОТЫ
 			this->setAccelerationStep(stepsAcceleration_Brake, pointStartBrake_Acceleration);
 			this->setBrakeMotorStep(stepsAcceleration_Brake, pointStartBrake_Acceleration);
@@ -141,6 +153,8 @@
 	{
 		HAL_TIM_PWM_Stop(p_htim_PWM, m_Channel); 				// остановить шим
 		m_typeMotion = NO_MOTION;
+		m_counterSteps = 0;
+		this->setSpeed(1);
 	}
 
 	void StepMotor::setMaxSpeed(uint32_t maxSpeed)
@@ -150,7 +164,7 @@
 
 	uint32_t StepMotor::getSpeed()
 	{
-		return m_MaxSpeed;
+		return m_speed;
 	}
 
 	uint32_t StepMotor::getMaxSpeed()
@@ -176,7 +190,12 @@
 		if(m_Retention)
 			HAL_GPIO_WritePin(m_GPIOx_Enable, m_pin_enable, GPIO_PIN_RESET);
 		else if(!m_Retention)
+		{
 			HAL_GPIO_WritePin(m_GPIOx_Enable, m_pin_enable, GPIO_PIN_SET);
+			this->setSpeed(1);
+			this->stopMotion();
+		}
+
 	}
 
 	void StepMotor::setSpeed(uint32_t speed)
@@ -186,6 +205,9 @@
 
 		if(speed < m_MinSpeed)
 			speed = m_MinSpeed;
+
+		if(speed > m_MaxSpeed)
+			speed = m_MaxSpeed;
 
 		m_speed = speed;
 		int arr = (HAL_RCC_GetSysClockFreq() / p_htim_PWM->Instance->PSC) / speed ;
@@ -216,7 +238,6 @@
 	{
 		if (m_speed >= m_MaxSpeed)
 		{
-			setSpeed(m_MaxSpeed);
 			return;
 		}
 		else if(m_counterSteps % stepMotorInStepAccel == 0)

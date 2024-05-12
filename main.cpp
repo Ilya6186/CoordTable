@@ -28,6 +28,15 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+struct MotionTask{
+uint8_t motor;
+uint8_t direction;
+uint8_t rerention;
+uint8_t procentBrakeAccel;
+uint8_t stepsBrakeAccel;
+uint32_t stepsMotion;
+};
+
 
 /* USER CODE END PTD */
 
@@ -45,13 +54,14 @@
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-
+UART_HandleTypeDef huart1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -61,15 +71,16 @@ static void MX_TIM3_Init(void);
 
 /* USER CODE END 0 */
 
-StepMotor* motor;
-
+StepMotor* motorX;
+StepMotor* motorY;
+MotionTask* task = new MotionTask;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)		// вызывается по окончанию периода шим
 {
-	motor->checkMotorInCallback(htim);
+	motorX->checkMotorInCallback(htim);
 }
 
 /**
@@ -102,6 +113,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_TIM3_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -110,7 +122,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   TIM_HandleTypeDef *phtim3 = &htim3;
 
-  motor = new StepMotor(GPIOA, enable_Pin, GPIOA, dir_Pin, phtim3, TIM_CHANNEL_1);
+  motorX = new StepMotor(GPIOA, enable_Pin, GPIOA, dir_Pin, phtim3, TIM_CHANNEL_1);
+ // motorY = new StepMotor(GPIOA, enable_Pin, GPIOA, dir_Pin, phtim3, TIM_CHANNEL_1);
   Debounce buttonB14(GPIOB, GPIO_PIN_14, 100);
   Debounce buttonB13(GPIOB, GPIO_PIN_13, 100);
   Debounce buttonB15(GPIOB, GPIO_PIN_15, 100);
@@ -122,28 +135,25 @@ int main(void)
     /* USER CODE END WHILE */
 	  if(buttonB14.CheckButton())			// red
 	  {
-		  	//motor->setDirection(uint8_t(0));
-			//motor->setMaxSpeed(30000);
-		  	//motor->startMotion(64000, 15, 50);
-		  	//motor->setRetention(1);
-		motor->setMaxSpeed(30000);
-		  motor->startDC_Motion(50, 10);
+		  	motorX->setRetention(1);
+		  	motorX->setMaxSpeed(40000);
+		  	motorX->startDC_Motion(100, 100);
 	  }
 	  else if(buttonB13.CheckButton())	//blue
 	  {
-			motor->setDirection(uint8_t(1));
-			motor->setMaxSpeed(30000);
-			motor->startMotion(160000, 5, 50);
-			motor->setRetention(1);
+			motorX->setDirection(uint8_t(1));
+			//motorX->setMaxSpeed(30000);
+			motorX->startMotion(640000, 60000, 20, 100);
+			motorX->setRetention(1);
 	  }
 	  else if(buttonB15.CheckButton())		// green
 	  {
-		  motor->setRetention(0);
-		  motor->stopMotion();
+		  motorX->setRetention(1);
+		  motorX->stopMotion();
 	  }
 	  else if(buttonB12.CheckButton())			//white
 	  {
-		  motor->setRetention(0);
+		  motorX->setRetention(0);
 	  }
 
     /* USER CODE BEGIN 3 */
@@ -240,6 +250,33 @@ static void MX_TIM3_Init(void)
 
 }
 
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_EVEN;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
 /**
   * @brief GPIO Initialization Function
   * @param None
