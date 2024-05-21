@@ -80,6 +80,7 @@ private:
 	void stopMotion();
 	inline int getMotorState();
 	void startDC_Motion(uint16_t nSteps, uint16_t stepsInOneAccelStep);
+	void start();
 
 	private:
 	void calculateFreqBrakeStep();

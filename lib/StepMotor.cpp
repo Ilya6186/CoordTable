@@ -100,7 +100,7 @@
 		typeMotorControl = DC_MOTOR;
 		m_stepsAcceleration = nStepsAcceleration;
 		m_OneStepAcceleration = stepsInOneAccelStep;
-		HAL_TIM_PWM_Start_IT(p_htim_PWM, TIM_CHANNEL_1);
+		HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
 		//accelerationService(m_counterSteps);
 
 	}
@@ -144,9 +144,14 @@
 			calculateFreqBrakeStep();
 			calculateFreqAccelerationStep();
 			m_typeMotion = ACCELERATION;
-			HAL_TIM_PWM_Start_IT(p_htim_PWM, TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
 
 		}
+	}
+
+	void StepMotor::start()
+	{
+		//HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
 	}
 
 	void StepMotor::stopMotion()
