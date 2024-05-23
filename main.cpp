@@ -155,7 +155,7 @@ int main(void)
 
 			motorY->setDirection(uint8_t(1));
 			//motorX->setMaxSpeed(30000);
-			motorY->startMotion(640000, 6000, 20, 100);
+			motorY->startMotion(64000, 6000, 20, 100);
 			motorY->setRetention(1);
 
 	  }
