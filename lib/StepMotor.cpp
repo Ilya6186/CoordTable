@@ -34,7 +34,7 @@
 
 
 		htim_PWM-> Instance->CR1 |=  TIM_CR1_ARPE;
-		stopMotion();
+		//stopMotion();
 		this->setMinSpeed(1);
 	}
 
@@ -54,13 +54,13 @@
 					if(m_counterSteps <= m_stepEndAcceleration)
 					{
 						m_typeMotion = ACCELERATION;
-						accelerationService();
+						accelerationService(m_counterSteps);
 					}
 
-					else if(m_counterSteps >= m_stepStartBrake)
+					if(m_counterSteps >= m_stepStartBrake)
 					{
 						m_typeMotion = BRACKING;
-						brakeService();
+						brakeService(m_counterSteps);
 					}
 
 					m_typeMotion = MOTION;
@@ -68,6 +68,7 @@
 				}
 				else
 				{
+					m_AccelIteration = 1;
 					m_speed = 0;
 					m_counterSteps = 0;
 					stopMotion();
@@ -76,6 +77,38 @@
 
 	}
 
+	void  StepMotor::accelerationService(int i)
+	{
+		if(i % m_OneStepAcceleration == 0)
+		{
+			if(m_AccelIteration < STEPS_ACCEL_BRAKE)
+			{
+				setSpeed(arr_motionAccel[m_AccelIteration]);
+				m_AccelIteration++;
+
+			}
+			else
+				return;
+
+		}
+	}
+
+
+	void StepMotor::brakeService(int i)
+	{
+		if(i % m_OneStepAcceleration == 0)
+		{
+			if(m_AccelIteration > 0)
+			{
+				setSpeed(arr_motionAccel[m_AccelIteration - 1]);
+				m_AccelIteration--;
+
+			}
+			else
+				return;
+
+		}
+	}
 
 	void StepMotor::checkMotorInCallback(TIM_HandleTypeDef *htim)
 	{
@@ -112,8 +145,6 @@
 		if(m_typeMotion == NO_MOTION)
 		{
 
-			m_typeMotion = ACCELERATION;
-
 			m_MaxSpeed = maxSpeed;
 
 			HAL_GPIO_WritePin(m_GPIOx_Enable, m_pin_enable, GPIO_PIN_RESET);
@@ -137,21 +168,27 @@
 				pointStartBrake_Acceleration = m_MaxSpeed;
 			}
 
-			int stepsAcceleration_Brake = pointStartBrake_Acceleration / nStepsAccelBrake;		// КОЛ-ВО ШАГОВ УВЕЛИЧЕНИЯ ЧАСТОТЫ
-			this->setAccelerationStep(stepsAcceleration_Brake, pointStartBrake_Acceleration);
-			this->setBrakeMotorStep(stepsAcceleration_Brake, pointStartBrake_Acceleration);
+
+			this->setAccelerationStep(STEPS_ACCEL_BRAKE, pointStartBrake_Acceleration);
+			this->setBrakeMotorStep(STEPS_ACCEL_BRAKE, pointStartBrake_Acceleration);
 
 			calculateFreqBrakeStep();
 			calculateFreqAccelerationStep();
-			m_typeMotion = ACCELERATION;
-			HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
 
+
+			accelerationVelCalculate();
+	//		brakeService();
+
+			m_typeMotion = READY_TO_MOTION;
 		}
 	}
 
 	void StepMotor::start()
 	{
-		//HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
+		if(m_typeMotion == READY_TO_MOTION)
+			HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
+		else
+			m_typeMotion = ERROR;
 	}
 
 	void StepMotor::stopMotion()
@@ -159,7 +196,7 @@
 		HAL_TIM_PWM_Stop(p_htim_PWM, m_Channel); 				// остановить шим
 		m_typeMotion = NO_MOTION;
 		m_counterSteps = 0;
-		this->setSpeed(1);
+		//this->setSpeed(1);
 	}
 
 	void StepMotor::setMaxSpeed(uint32_t maxSpeed)
@@ -198,26 +235,16 @@
 		{
 			HAL_GPIO_WritePin(m_GPIOx_Enable, m_pin_enable, GPIO_PIN_SET);
 			this->setSpeed(1);
-			this->stopMotion();
+			//this->stopMotion();
 		}
 
 	}
 
-	void StepMotor::setSpeed(uint32_t speed)
+	void StepMotor::setSpeed(uint32_t ARR)
 	{
-		if(speed <= 0)
-			return;
 
-		if(speed < m_MinSpeed)
-			speed = m_MinSpeed;
-
-		if(speed > m_MaxSpeed)
-			speed = m_MaxSpeed;
-
-		m_speed = speed;
-		int arr = (HAL_RCC_GetSysClockFreq() / p_htim_PWM->Instance->PSC) / speed ;
-		p_htim_PWM -> Instance -> ARR = arr - 1;
-		p_htim_PWM -> Instance -> CCR1 = arr / 2 - 1;
+		p_htim_PWM -> Instance -> ARR = ARR - 1;
+		p_htim_PWM -> Instance -> CCR1 = ARR / 2 - 1;
 
 
 	}
@@ -251,21 +278,20 @@
 		}
 	}
 
-	void StepMotor::accelerationService()
+	void StepMotor::accelerationVelCalculate()
 	{
-		if (m_counterSteps == 0 || m_counterSteps > m_stepEndAcceleration)
-			return;
 
-		if (m_counterSteps == m_stepEndAcceleration)
+		for(int i = 1; i < STEPS_ACCEL_BRAKE; i++ )
 		{
-			setSpeed(m_MaxSpeed);
-			return;
-		}
+		//	arr_motionAccel[0] = 1;
 
-		if(m_counterSteps % m_OneStepAcceleration == 0)	//
-		{
-			if(m_speed <= m_MaxSpeed)
-				setSpeed(m_speed + m_stepFreqAcceleration);
+			if(i == STEPS_ACCEL_BRAKE - 1)
+			{
+				arr_motionAccel[STEPS_ACCEL_BRAKE - 1] = (HAL_RCC_GetSysClockFreq() / p_htim_PWM->Instance->PSC) /getMaxSpeed();
+				return;
+			}
+			int speed = m_stepFreqAcceleration * i;
+			arr_motionAccel[i] = (HAL_RCC_GetSysClockFreq() / p_htim_PWM->Instance->PSC) / speed ;
 		}
 
 	}
@@ -277,22 +303,6 @@
 		m_stepsBrake = stepsBrake;
 	}
 
-	void StepMotor::brakeService()
-	{
-		if (m_counterSteps == 0 || m_counterSteps < m_stepStartBrake)
-			return;
-
-		if(m_counterSteps > m_nStepsForMotion)
-		{
-			stopMotion();
-			return;
-		}
-
-		if(m_counterSteps % m_OneStepBrake == 0)	//
-		{
-			setSpeed(m_speed - m_stepFreqAcceleration);
-		}
-	}
 
 	int StepMotor::getMotorState()
 	{

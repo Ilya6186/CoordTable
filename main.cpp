@@ -38,6 +38,13 @@ uint32_t stepsMotion;
 };
 
 
+enum transmitMessage
+{
+	RESIVED = 0,
+	ERROR_TRANSMIT = 1,
+	MOTION_END = 2
+
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -50,6 +57,8 @@ uint32_t stepsMotion;
 
 /* USER CODE END PM */
 
+uint8_t uartRxData[13];
+int uartTxData[1];
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim2;
@@ -138,6 +147,15 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+	 // HAL_UART_Transmit_IT(&huart1, uartTxData, sizeof(uartRxData))
+
+	  if((HAL_UART_Receive_IT(&huart1, uartRxData, sizeof(uartRxData)) == HAL_OK) && uartRxData[0] == '1')
+	  {
+		  int r = uartRxData[0];
+		  r += 2;
+	  }
+
 	  if(buttonB14.CheckButton())			// red
 	  {
 		  	motorX->setRetention(1);
@@ -150,13 +168,18 @@ int main(void)
 	  {
 			motorX->setDirection(uint8_t(1));
 			//motorX->setMaxSpeed(30000);
-			motorX->startMotion(640000, 6000, 20, 100);
+			motorX->startMotion(160000, 30000, 20, 100);
 			motorX->setRetention(1);
+			//motorX->start();
 
 			motorY->setDirection(uint8_t(1));
 			//motorX->setMaxSpeed(30000);
-			motorY->startMotion(64000, 6000, 20, 100);
+			motorY->startMotion(160000, 30000, 20, 100);
 			motorY->setRetention(1);
+
+			motorY->start();
+
+			motorX->start();
 
 	  }
 	  else if(buttonB15.CheckButton())		// green
@@ -319,18 +342,18 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 1 */
 
   /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_EVEN;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	  huart1.Instance = USART1;
+	  huart1.Init.BaudRate = 9600;
+	  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+	  huart1.Init.StopBits = UART_STOPBITS_1;
+	  huart1.Init.Parity = UART_PARITY_EVEN;
+	  huart1.Init.Mode = UART_MODE_TX_RX;
+	  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+	  if (HAL_UART_Init(&huart1) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */

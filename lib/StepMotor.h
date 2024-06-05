@@ -9,6 +9,7 @@
 #include "stm32f1xx_hal.h"
 #include "main.h"
 
+#define STEPS_ACCEL_BRAKE 100
 
 class StepMotor{
 
@@ -23,10 +24,11 @@ private:
 
 	enum TYPE_MOTION{
 		NO_MOTION = 0,
-		ACCELERATION = 1,
-		MOTION = 2,
-		BRACKING = 3,
-		ERROR = 4
+		READY_TO_MOTION = 1,
+		ACCELERATION = 2,
+		MOTION = 3,
+		BRACKING = 4,
+		ERROR = 5
 	};
 
 	enum TYPE_MOTOR_CONTROL{
@@ -35,6 +37,7 @@ private:
 	};
 
 	private:
+
 	GPIO_TypeDef *m_GPIOx_Enable;
 	GPIO_TypeDef *m_GPIOx_Dir;
 	GPIO_TypeDef *m_GPIOx_Step;
@@ -45,6 +48,8 @@ private:
 	TIM_HandleTypeDef *p_htim_PWM;
 
 	TYPE_MOTOR_CONTROL typeMotorControl;
+
+	int m_AccelIteration = 1; // переделать
 
 	uint32_t m_Channel;
 	bool m_direction;
@@ -62,6 +67,8 @@ private:
 	uint32_t m_stepFreqBrake;
 	uint32_t m_stepsAcceleration;
 	uint32_t m_stepsBrake;
+	int arr_motionAccel [STEPS_ACCEL_BRAKE];
+	int arr_motionBrake [STEPS_ACCEL_BRAKE];
 
 	public:
 	void setDirection(uint8_t direction);
@@ -81,13 +88,14 @@ private:
 	inline int getMotorState();
 	void startDC_Motion(uint16_t nSteps, uint16_t stepsInOneAccelStep);
 	void start();
+	void accelerationVelCalculate();
 
 	private:
 	void calculateFreqBrakeStep();
 	void calculateFreqAccelerationStep();
-	void accelerationService();
+	void accelerationService(int i);
 	void motorService();
-	void brakeService();
+	void brakeService(int i);
 	void accelerationDCService(uint16_t stepsAccelerate, uint32_t stepMotorInStepAccel);
 };
 
