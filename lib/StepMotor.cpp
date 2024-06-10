@@ -17,7 +17,7 @@
 		//---------------------------
 		m_speed = 0;					// now speed
 		m_MaxSpeed = -1;					// max speed
-		m_MinSpeed = 0;					// min speed
+		m_MinSpeed = 1;					// min speed
 		//---------------------------
 		m_direction = 0;				// direction 1 - left, 0 - right
 		m_counterSteps = 0;				// counter steps
@@ -35,7 +35,7 @@
 
 		htim_PWM-> Instance->CR1 |=  TIM_CR1_ARPE;
 		//stopMotion();
-		this->setMinSpeed(1);
+	//	this->setMinSpeed(1);
 	}
 
 	void StepMotor::motorService()		//вызывается в коллбэке
@@ -47,23 +47,21 @@
 			m_counterSteps++;
 		}
 
-		else if(typeMotorControl == STEP_MOTOR)
+		else if(typeMotorControl == STEP_MOTOR && m_typeMotion == READY_TO_START)
 		{
 			if(m_counterSteps < m_nStepsForMotion)
 				{
 					if(m_counterSteps <= m_stepEndAcceleration)
 					{
-						m_typeMotion = ACCELERATION;
 						accelerationService(m_counterSteps);
 					}
 
 					if(m_counterSteps >= m_stepStartBrake)
 					{
-						m_typeMotion = BRACKING;
 						brakeService(m_counterSteps);
 					}
 
-					m_typeMotion = MOTION;
+					//m_typeMotion = MOTION;
 					m_counterSteps++;
 				}
 				else
@@ -128,17 +126,8 @@
 		return m_direction;
 	}
 
-	void StepMotor::startDC_Motion(uint16_t nStepsAcceleration, uint16_t stepsInOneAccelStep)
-	{
-		typeMotorControl = DC_MOTOR;
-		m_stepsAcceleration = nStepsAcceleration;
-		m_OneStepAcceleration = stepsInOneAccelStep;
-		HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
-		//accelerationService(m_counterSteps);
 
-	}
-
-	void StepMotor::startMotion(uint32_t steps, uint32_t maxSpeed ,uint8_t procentAccel,  uint16_t nStepsAccelBrake)
+	void StepMotor::prepareCalcMotion(uint32_t steps, uint32_t maxSpeed ,uint8_t procentAccel,  uint16_t nStepsAccelBrake)
 	{
 		typeMotorControl = STEP_MOTOR;
 
@@ -183,12 +172,28 @@
 		}
 	}
 
+	void StepMotor::startDC_Motion(uint16_t stepsInOneAccelStep)
+	{
+		typeMotorControl = DC_MOTOR;
+
+		//uint32_t pointStartBrake_Acceleration = m_MaxSpeed * procentAccel / 100;
+		calculateFreqAccelerationStep();	// до какого шага увеличение частоты
+
+		HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
+		//accelerationService(m_counterSteps);
+
+	}
+
 	void StepMotor::start()
 	{
 		if(m_typeMotion == READY_TO_MOTION)
+		{
+			m_typeMotion = READY_TO_START;
 			HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
+		}
+
 		else
-			m_typeMotion = ERROR;
+			return;
 	}
 
 	void StepMotor::stopMotion()
@@ -199,7 +204,7 @@
 		//this->setSpeed(1);
 	}
 
-	void StepMotor::setMaxSpeed(uint32_t maxSpeed)
+/*	void StepMotor::setMaxSpeed(uint32_t maxSpeed)
 	{
 		m_MaxSpeed = maxSpeed;
 	}
@@ -208,14 +213,14 @@
 	{
 		return m_speed;
 	}
-
+*/
 	uint32_t StepMotor::getMaxSpeed()
 	{
 		return m_MaxSpeed;
 	}
 
 
-	void StepMotor::setMinSpeed(uint32_t speed)
+/*	void StepMotor::setMinSpeed(uint32_t speed)
 	{
 		m_MinSpeed = speed;
 	}
@@ -224,7 +229,7 @@
 	{
 		return m_MinSpeed;
 	}
-
+*/
 	void StepMotor::setRetention(bool Retention)
 	{
 		m_Retention = Retention;

@@ -9,7 +9,7 @@
 #include "stm32f1xx_hal.h"
 #include "main.h"
 
-#define STEPS_ACCEL_BRAKE 100
+#define STEPS_ACCEL_BRAKE 150
 
 class StepMotor{
 
@@ -25,10 +25,9 @@ private:
 	enum TYPE_MOTION{
 		NO_MOTION = 0,
 		READY_TO_MOTION = 1,
-		ACCELERATION = 2,
+		READY_TO_START = 2,
 		MOTION = 3,
-		BRACKING = 4,
-		ERROR = 5
+		ERROR = 9
 	};
 
 	enum TYPE_MOTOR_CONTROL{
@@ -74,19 +73,19 @@ private:
 	void setDirection(uint8_t direction);
 	void checkMotorInCallback(TIM_HandleTypeDef *htim);
 	inline uint8_t getDirection();
-	void startMotion(uint32_t steps, uint32_t maxSpeed, uint8_t procentAccelBrake,  uint16_t nStepsAccelBrake);
-	void setMaxSpeed(uint32_t speed);
-	uint32_t getSpeed();
+	void prepareCalcMotion(uint32_t steps, uint32_t maxSpeed, uint8_t procentAccelBrake,  uint16_t nStepsAccelBrake);
+	//void setMaxSpeed(uint32_t speed);
+	//uint32_t getSpeed();
 	void setAccelerationStep(uint32_t step,  uint32_t stepEndAccep);
 	void setSpeed(uint32_t speed);
 	uint32_t getMaxSpeed();
-	void setMinSpeed(uint32_t speed);
-	uint32_t getMinSpeed();
+//	void setMinSpeed(uint32_t speed);
+//	uint32_t getMinSpeed();
 	void setRetention(bool);
 	void setBrakeMotorStep(uint32_t stepsBrake, uint32_t pointStartBraking);
 	void stopMotion();
 	inline int getMotorState();
-	void startDC_Motion(uint16_t nSteps, uint16_t stepsInOneAccelStep);
+	void startDC_Motion( uint16_t stepsInOneAccelStep);
 	void start();
 	void accelerationVelCalculate();
 
