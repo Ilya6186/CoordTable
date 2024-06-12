@@ -4,7 +4,6 @@
 	StepMotor::StepMotor(GPIO_TypeDef *GPIOx_Enable, uint16_t pin_Enable,GPIO_TypeDef *GPIOx_Dir,
 			uint16_t pin_Dir, TIM_HandleTypeDef *htim_PWM, uint32_t Channel)
 	{
-
 		//---------------------------
 		// pinout
 		m_GPIOx_Enable = GPIOx_Enable;
@@ -31,6 +30,7 @@
 		m_stepEndAcceleration = 0;		// шаг конца ускорения
 		m_OneStepBrake = 0;				// значение на которое уменьшается скорость за один шаг
 		m_stepStartBrake = 0;			// шаг начала торможения
+		m_stepsAcceleration = 0;
 
 
 		htim_PWM-> Instance->CR1 |=  TIM_CR1_ARPE;
@@ -40,11 +40,10 @@
 
 	void StepMotor::motorService()		//вызывается в коллбэке
 	{
-		if(typeMotorControl == DC_MOTOR)
+		if(typeMotorControl == DC_MOTOR && m_typeMotion == READY_TO_START)
 		{
-			accelerationDCService(getMaxSpeed() / m_stepsAcceleration, m_OneStepAcceleration);
-
 			m_counterSteps++;
+			accelerationDCService(m_counterSteps);
 		}
 
 		else if(typeMotorControl == STEP_MOTOR && m_typeMotion == READY_TO_START)
@@ -87,11 +86,23 @@
 			}
 			else
 				return;
-
 		}
 	}
 
+	void StepMotor::accelerationDCService(int i)
+	{
+		if(i % m_OneStepAcceleration == 0)
+		{
+			if(m_AccelIteration < STEPS_ACCEL_BRAKE)
+			{
+				setSpeed(arr_motionAccel[m_AccelIteration]);
+				m_AccelIteration++;
 
+			}
+			else
+				return;
+		}
+	}
 	void StepMotor::brakeService(int i)
 	{
 		if(i % m_OneStepAcceleration == 0)
@@ -127,7 +138,7 @@
 	}
 
 
-	void StepMotor::prepareCalcMotion(uint32_t steps, uint32_t maxSpeed ,uint8_t procentAccel,  uint16_t nStepsAccelBrake)
+	void StepMotor::prepareCalcMotion(uint32_t steps, uint32_t maxSpeed, uint8_t procentAccel)
 	{
 		typeMotorControl = STEP_MOTOR;
 
@@ -166,20 +177,26 @@
 
 
 			accelerationVelCalculate();
-	//		brakeService();
+
 
 			m_typeMotion = READY_TO_MOTION;
 		}
 	}
 
-	void StepMotor::startDC_Motion(uint16_t stepsInOneAccelStep)
+	void StepMotor::prepareDC_Motion(uint16_t maxSpeed, uint16_t procentAccel)
 	{
 		typeMotorControl = DC_MOTOR;
 
-		//uint32_t pointStartBrake_Acceleration = m_MaxSpeed * procentAccel / 100;
-		calculateFreqAccelerationStep();	// до какого шага увеличение частоты
 
-		HAL_TIM_PWM_Start_IT(p_htim_PWM, m_Channel);
+		m_MaxSpeed = maxSpeed;
+		uint32_t pointStartBrake_Acceleration = m_MaxSpeed * procentAccel / 100;
+
+		this->setAccelerationStep(STEPS_ACCEL_BRAKE, pointStartBrake_Acceleration);
+
+		calculateFreqAccelerationStep();	// до какого шага увеличение частоты
+		accelerationVelCalculate();
+
+		m_typeMotion = READY_TO_MOTION;
 		//accelerationService(m_counterSteps);
 
 	}
@@ -269,18 +286,6 @@
 	void StepMotor::calculateFreqBrakeStep()		// до какого шага увеличение частоты
 	{
 		m_stepFreqBrake = m_MaxSpeed / m_stepsBrake;
-	}
-
-	void StepMotor::accelerationDCService(uint16_t stepsAccelerate, uint32_t stepMotorInStepAccel)	// передаём шагм ускорения, сколько шагов двигатель делает за шаг ускорения
-	{
-		if (m_speed >= m_MaxSpeed)
-		{
-			return;
-		}
-		else if(m_counterSteps % stepMotorInStepAccel == 0)
-		{
-			setSpeed(m_speed + getMaxSpeed() / 100);
-		}
 	}
 
 	void StepMotor::accelerationVelCalculate()

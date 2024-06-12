@@ -159,10 +159,11 @@ int main(void)
 	  if(buttonB14.CheckButton())			// red
 	  {
 		  	motorX->setRetention(1);
-		//  	motorX->setMaxSpeed(40000);
+		  	//motorX->setMaxSpeed(40000);
 
 
-		  	//motorX->startDC_Motion(pointStartBrake_Acceleration);
+		  	motorX->prepareDC_Motion(30000, 5);
+		  	motorX->start();
 		//  	motorY->setMaxSpeed(40000);
 		  	//motorY->startDC_Motion(pointStartBrake_Acceleration);
 	  }
@@ -170,13 +171,13 @@ int main(void)
 	  {
 			motorX->setDirection(uint8_t(1));
 			//motorX->setMaxSpeed(30000);
-			motorX->prepareCalcMotion(160000, 30000, 20, 100);
+			motorX->prepareCalcMotion(160000, 30000, 20);
 			motorX->setRetention(1);
 			//motorX->start();
 
 			motorY->setDirection(uint8_t(1));
 			//motorX->setMaxSpeed(30000);
-			motorY->prepareCalcMotion(160000, 30000, 20, 100);
+			motorY->prepareCalcMotion(160000, 30000, 20);
 			motorY->setRetention(1);
 
 			motorY->start();

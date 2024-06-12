@@ -67,13 +67,13 @@ private:
 	uint32_t m_stepsAcceleration;
 	uint32_t m_stepsBrake;
 	int arr_motionAccel [STEPS_ACCEL_BRAKE];
-	int arr_motionBrake [STEPS_ACCEL_BRAKE];
+//	int arr_motionBrake [STEPS_ACCEL_BRAKE];
 
 	public:
 	void setDirection(uint8_t direction);
 	void checkMotorInCallback(TIM_HandleTypeDef *htim);
 	inline uint8_t getDirection();
-	void prepareCalcMotion(uint32_t steps, uint32_t maxSpeed, uint8_t procentAccelBrake,  uint16_t nStepsAccelBrake);
+	void prepareCalcMotion(uint32_t steps, uint32_t maxSpeed, uint8_t procentAccelBrake);
 	//void setMaxSpeed(uint32_t speed);
 	//uint32_t getSpeed();
 	void setAccelerationStep(uint32_t step,  uint32_t stepEndAccep);
@@ -85,7 +85,7 @@ private:
 	void setBrakeMotorStep(uint32_t stepsBrake, uint32_t pointStartBraking);
 	void stopMotion();
 	inline int getMotorState();
-	void startDC_Motion( uint16_t stepsInOneAccelStep);
+	void prepareDC_Motion(uint16_t maxSpeed, uint16_t procentAccel);
 	void start();
 	void accelerationVelCalculate();
 
@@ -95,7 +95,7 @@ private:
 	void accelerationService(int i);
 	void motorService();
 	void brakeService(int i);
-	void accelerationDCService(uint16_t stepsAccelerate, uint32_t stepMotorInStepAccel);
+	void accelerationDCService(int i);
 };
 
 
